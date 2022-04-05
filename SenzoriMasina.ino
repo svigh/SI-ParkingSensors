@@ -4,7 +4,7 @@
 #include <Adafruit_SSD1306.h>
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
 
 // Declaration for SSD1306 display connected using software SPI (default case):
 #define OLED_MOSI  6
@@ -15,15 +15,21 @@
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT,
   OLED_MOSI, OLED_CLK, OLED_DC, OLED_RESET, OLED_CS);
 
+// Declare buzzers
 const int buzzer1 = 13;
 const int buzzer2 = 12;
+
+// Declare Back Distance sensor
 const int echoPinSpate = 11;
 const int trigPinSpate = 10;
 
+// Declare Front Distance sensor
 const int echoPinFata = 9;
 const int trigPinFata = 8;
 
+// The durations sent-receiv operation of the sensors 
 long durationSpate, durationFata;
+// The calculations of the distances resulted by the durations of each signal
 int distanceSpate, distanceFata;
 
 void setup(){
@@ -35,6 +41,7 @@ void setup(){
   display.display();
   delay(2000); // Pause for 2 seconds
   display.clearDisplay();
+  // Initialize display text settings
   display.setTextSize(1);      // Normal 1:1 pixel scale
   display.setTextColor(WHITE); // Draw white text
   display.setCursor(0, 0);     // Start at top-left corner
@@ -46,11 +53,12 @@ void setup(){
   pinMode(echoPinSpate, INPUT);     // Sets the echoPin as an Input
   pinMode(trigPinFata, OUTPUT);     // Sets the trigPin as an Output
   pinMode(echoPinFata, INPUT);      // Sets the echoPin as an Input
-  Serial.begin(9600);               // Start serial comm
+  Serial.begin(9600);               // Start serial comm for debugging
 
 }
 
 void loop(){
+  // To clean the 10us signal
   digitalWrite(trigPinSpate, LOW);
   delayMicroseconds(2);
   
@@ -64,13 +72,14 @@ void loop(){
   durationSpate = pulseIn(echoPinSpate, HIGH);
   
   // Calculating the distance
-  distanceSpate = durationSpate * 0.034/2;
+  // The speed of sound is: 340m/s
+  distanceSpate = durationSpate/2 * 0.034;
   
   // Prints the distance on the Serial Monitor
   Serial.print("DistanceSpate: ");
   Serial.println(distanceSpate);
 
-  if(distanceSpate < 30)
+  if(distanceSpate < 30) // Beep if distance is short enough
   {
     int beepRate = distanceSpate * 5;
     Serial.print("DistanceSpate too close\n");
@@ -81,6 +90,7 @@ void loop(){
     noTone(buzzer1);
 //  drawDistance();
   
+  // To clean the 10us signal
   digitalWrite(trigPinFata, LOW);
   delayMicroseconds(2);
 
@@ -94,7 +104,8 @@ void loop(){
   durationFata = pulseIn(echoPinFata, HIGH);
 
   // Calculating the distance
-  distanceFata = durationFata * 0.034/2;
+  // The speed of sound is: 340m/s
+  distanceFata = durationFata/2 * 0.034;
   
   // Prints the distance on the Serial Monitor
   Serial.print("DistanceFata: ");
@@ -112,6 +123,7 @@ void loop(){
   drawDistance();
 }
 
+// Create a beep that can have variable beep rate
 void beep(const int buzzerNO, int beepRate)
 {
     tone(buzzerNO, 200);  //beep
@@ -120,8 +132,9 @@ void beep(const int buzzerNO, int beepRate)
     delay(beepRate);      //pause duration
 }
 
+// Draw the distance bars for each side/sensor
 void drawDistance(void) {  
-  display.clearDisplay();
+  display.clearDisplay();      // Normal display draw steps
   display.setTextSize(1);      // Normal 1:1 pixel scale
   display.setTextColor(WHITE); // Draw white text
   display.setCursor(0, 0);     // Start at top-left corner
@@ -129,17 +142,20 @@ void drawDistance(void) {
   display.println(distanceFata);
   display.setCursor(40, 0);
   display.println(distanceSpate);
+
   uint16_t _distFata, _distSpate;
   
   _distFata = distanceFata * 2;
   _distSpate = distanceSpate * 2;
   
+  // For debugging
   Serial.println("\n__________DISTSPATE");
   Serial.println(_distSpate);
-
+  // For debugging
   Serial.println("\n__________FATA");
   Serial.println(_distFata);
-
+  
+  // Arbitrary length to represent how close or far each obstacle is from its respective sensor
   display.fillRect(0, 10                  , _distFata , 5, 1);
   display.fillRect(0, SCREEN_HEIGHT/2 + 10, _distSpate, 5, 1);
 
